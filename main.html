@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #e8ff57;
+    --accent2: #ff6b6b;
+    --text: #f0f0f0;
+    --muted: #888;
+    --success: #57ffb8;
+    --warning: #ffb347;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: -1px;
+    color: var(--accent);
+  }
+  .budget-pill {
+    font-size: 0.72rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    color: var(--muted);
+  }
+  .budget-pill span { color: var(--accent); font-weight: 700; }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    flex: 1;
+  }
+
+  /* ── SIDEBAR ── */
+  nav {
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .nav-btn:hover { color: var(--text); background: var(--surface2); }
+  .nav-btn.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--surface2);
+  }
+  .nav-btn .icon { font-size: 1rem; width: 20px; text-align: center; }
+
+  /* ── MAIN ── */
+  main {
+    padding: 32px 40px;
+    overflow-y: auto;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 22px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── FORM ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 560px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  input, select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+
+  .btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #0a0a0f; }
+  .btn-primary:hover { background: #d4eb40; transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── ALERT ── */
+  .alert {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    display: none;
+  }
+  .alert.show { display: block; }
+  .alert.success { background: #1a2e22; border: 1px solid #57ffb840; color: var(--success); }
+  .alert.error   { background: #2e1a1a; border: 1px solid #ff6b6b40; color: var(--accent2); }
+  .alert.warning { background: #2e2410; border: 1px solid #ffb34740; color: var(--warning); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .amount-cell { color: var(--accent); font-weight: 700; }
+  .empty-state {
+    text-align: center;
+    padding: 48px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  /* ── TOTAL CARD ── */
+  .total-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+    min-width: 220px;
+  }
+  .total-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .total-value { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--accent); }
+  .total-warning { color: var(--accent2); font-size: 0.78rem; margin-top: 4px; }
+
+  /* ── FILTER ROW ── */
+  .filter-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-row .form-group { margin: 0; }
+
+  /* ── STATS STRIP ── */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  .stat-card .s-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-card .s-val { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--text); margin-top: 4px; }
+  .stat-card .s-val.yellow { color: var(--accent); }
+
+  /* ── BUDGET BAR ── */
+  .budget-bar-wrap { margin: 0 0 28px; }
+  .budget-bar-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .budget-bar-bg { background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+  .budget-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; background: var(--accent); }
+  .budget-bar-fill.over { background: var(--accent2); }
+
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 0; }
+    .nav-btn { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+    .nav-btn.active { border-bottom-color: var(--accent); border-left-color: transparent; }
+    header { padding: 16px 20px; }
+    main { padding: 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-strip { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>₹ Expense Tracker</h1>
+  <div class="budget-pill">Budget: <span id="budgetDisplay">₹5,000.00</span></div>
+</header>
+
+<div class="layout">
+  <nav>
+    <button class="nav-btn active" onclick="showPanel('overview')" data-panel="overview">
+      <span class="icon">◈</span> Overview
+    </button>
+    <button class="nav-btn" onclick="showPanel('add')" data-panel="add">
+      <span class="icon">+</span> Add Expense
+    </button>
+    <button class="nav-btn" onclick="showPanel('all')" data-panel="all">
+      <span class="icon">≡</span> All Expenses
+    </button>
+    <button class="nav-btn" onclick="showPanel('monthly')" data-panel="monthly">
+      <span class="icon">◷</span> Monthly Total
+    </button>
+    <button class="nav-btn" onclick="showPanel('category')" data-panel="category">
+      <span class="icon">◉</span> Category Total
+    </button>
+    <button class="nav-btn" onclick="showPanel('searchDate')" data-panel="searchDate">
+      <span class="icon">⊙</span> Search by Date
+    </button>
+    <button class="nav-btn" onclick="showPanel('searchCat')" data-panel="searchCat">
+      <span class="icon">⊛</span> Search by Category
+    </button>
+  </nav>
+
+  <main>
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div class="panel-title">Overview</div>
+      <div class="stats-strip">
+        <div class="stat-card">
+          <div class="s-label">Total Expenses</div>
+          <div class="s-val yellow" id="ov-total">₹0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">This Month</div>
+          <div class="s-val" id="ov-month">₹0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">Records</div>
+          <div class="s-val" id="ov-count">0</div>
+        </div>
+      </div>
+      <div class="budget-bar-wrap">
+        <div class="budget-bar-label">
+          <span>Monthly Budget Usage</span>
+          <span id="ov-pct">0%</span>
+        </div>
+        <div class="budget-bar-bg">
+          <div class="budget-bar-fill" id="ov-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="panel-title" style="margin-top:0">Recent Expenses</div>
+      <div class="table-wrap" id="ov-table"></div>
+    </div>
+
+    <!-- ADD EXPENSE -->
+    <div class="panel" id="panel-add">
+      <div class="panel-title">Add Expense</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Year</label>
+          <input type="number" id="add-year" min="2000" max="2100" placeholder="2025">
+        </div>
+        <div class="form-group">
+          <label>Month</label>
+          <select id="add-month">
+            <option value="">Select month</option>
+            <option value="1">01 – January</option>
+            <option value="2">02 – February</option>
+            <option value="3">03 – March</option>
+            <option value="4">04 – April</option>
+            <option value="5">05 – May</option>
+            <option value="6">06 – June</option>
+            <option value="7">07 – July</option>
+            <option value="8">08 – August</option>
+            <option value="9">09 – September</option>
+            <option value="10">10 – October</option>
+            <option value="11">11 – November</option>
+            <option value="12">12 – December</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Day</label>
+          <input type="number" id="add-day" min="1" max="31" placeholder="1">
+        </div>
+        <div class="form-group">
+          <label>Category (no spaces)</label>
+          <input type="text" id="add-cat" maxlength="19" placeholder="Food">
+        </div>
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="add-amount" min="0.01" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Note (no spaces)</label>
+          <input type="text" id="add-note" maxlength="99" placeholder="Lunch">
+        </div>
+        <div class="form-group full">
+          <button class="btn btn-primary" onclick="addExpense()">Add Expense</button>
+        </div>
+      </div>
+      <div class="alert" id="add-alert"></div>
+    </div>
+
+    <!-- ALL EXPENSES -->
+    <div class="panel" id="panel-all">
+      <div class="panel-title">All Expenses</div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn btn-secondary" onclick="clearAll()" style="font-size:0.75rem;padding:8px 16px;">Clear All Data</button>
+      </div>
+      <div class="table-wrap" id="all-table"></div>
+    </div>
+
+    <!-- MONTHLY TOTAL -->
+    <div class="panel" id="panel-monthly">
+      <div class="panel-title">Monthly Total</div>
+      <div class="filter-row">
+        <div class="form-group">
+          <label>Year</label>
+          <input type="number" id="m-year" min="2000" max="2100" placeholder="2025" style="width:120px">
+        </div>
+        <div class="form-group">
+          <label>Month</label>
+          <select id="m-month" style="width:160px">
+            <option value="">Select month</option>
+            <option value="1">01 – January</option>
+            <option value="2">02 – February</option>
+            <option value="3">03 – March</option>
+            <option value="4">04 – April</option>
+            <option value="5">05 – May</option>
+            <option value="6">06 – June</option>
+            <option value="7">07 – July</option>
+            <option value="8">08 – August</option>
+            <option value="9">09 – September</option>
+            <option value="10">10 – October</option>
+            <option value="11">11 – November</option>
+            <option value="12">12 – December</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="calcMonthly()">Calculate</button>
+      </div>
+      <div id="monthly-result"></div>
+    </div>
+
+    <!-- CATEGORY TOTAL -->
+    <div class="panel" id="panel-category">
+      <div class="panel-title">Category Total</div>
+      <div class="filter-row">
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="ct-cat" placeholder="Food" style="width:200px">
+        </div>
+        <button class="btn btn-primary" onclick="calcCategory()">Calculate</button>
+      </div>
+      <div id="cat-result"></div>
+    </div>
+
+    <!-- SEARCH BY DATE -->
+    <div class="panel" id="panel-searchDate">
+      <div class="panel-title">Search by Date</div>
+      <div class="filter-row">
+        <div class="form-group">
+          <label>Year</label>
+          <input type="number" id="sd-year" min="2000" max="2100" placeholder="2025" style="width:110px">
+        </div>
+        <div class="form-group">
+          <label>Month</label>
+          <select id="sd-month" style="width:155px">
+            <option value="">Select month</option>
+            <option value="1">01 – January</option>
+            <option value="2">02 – February</option>
+            <option value="3">03 – March</option>
+            <option value="4">04 – April</option>
+            <option value="5">05 – May</option>
+            <option value="6">06 – June</option>
+            <option value="7">07 – July</option>
+            <option value="8">08 – August</option>
+            <option value="9">09 – September</option>
+            <option value="10">10 – October</option>
+            <option value="11">11 – November</option>
+            <option value="12">12 – December</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Day</label>
+          <input type="number" id="sd-day" min="1" max="31" placeholder="1" style="width:80px">
+        </div>
+        <button class="btn btn-primary" onclick="searchDate()">Search</button>
+      </div>
+      <div class="table-wrap" id="sd-table"></div>
+    </div>
+
+    <!-- SEARCH BY CATEGORY -->
+    <div class="panel" id="panel-searchCat">
+      <div class="panel-title">Search by Category</div>
+      <div class="filter-row">
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="sc-cat" placeholder="Food" style="width:200px">
+        </div>
+        <button class="btn btn-primary" onclick="searchCat()">Search</button>
+      </div>
+      <div class="table-wrap" id="sc-table"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   DATA LAYER  — mirrors expenses.txt in localStorage
+   Each record: { date, category, amount, note }
+   ════════════════════════════════════════════ */
+const BUDGET = 5000;
+const KEY    = 'expenses_data';
+
+function loadExpenses() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+  catch { return []; }
+}
+function saveExpenses(arr) {
+  localStorage.setItem(KEY, JSON.stringify(arr));
+}
+
+/* ── date helpers (mirrors C leap-year logic) ── */
+function isLeap(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+function maxDay(y, m) {
+  if (m === 2)  return isLeap(y) ? 29 : 28;
+  if ([4,6,9,11].includes(m)) return 30;
+  return 31;
+}
+function pad2(n) { return String(n).padStart(2,'0'); }
+function fmtDate(y,m,d) { return `${String(y).padStart(4,'0')}-${pad2(m)}-${pad2(d)}`; }
+
+/* ── nav ── */
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelector(`[data-panel="${id}"]`).classList.add('active');
+  if (id === 'overview') refreshOverview();
+  if (id === 'all')      renderAll();
+}
+
+/* ── alert helper ── */
+function showAlert(elId, msg, type) {
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.className = `alert show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+/* ── render table helper ── */
+function renderTable(containerId, rows) {
+  const el = document.getElementById(containerId);
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty-state">No records found.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Category</th><th>Amount</th><th>Note</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${r.date}</td>
+            <td>${r.category}</td>
+            <td class="amount-cell">₹${parseFloat(r.amount).toFixed(2)}</td>
+            <td>${r.note}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* ════════════════════════════════════════════
+   1. ADD EXPENSE
+   ════════════════════════════════════════════ */
+function addExpense() {
+  const year  = parseInt(document.getElementById('add-year').value);
+  const month = parseInt(document.getElementById('add-month').value);
+  const day   = parseInt(document.getElementById('add-day').value);
+  const cat   = document.getElementById('add-cat').value.trim();
+  const amt   = parseFloat(document.getElementById('add-amount').value);
+  const note  = document.getElementById('add-note').value.trim();
+
+  /* ── validation (mirrors C readInt + scanf checks) ── */
+  if (!year || year < 2000 || year > 2100)
+    return showAlert('add-alert','Year must be between 2000 and 2100.','error');
+  if (!month || month < 1 || month > 12)
+    return showAlert('add-alert','Please select a valid month.','error');
+  const md = maxDay(year, month);
+  if (!day || day < 1 || day > md)
+    return showAlert('add-alert',`Day must be between 1 and ${md} for this month.`,'error');
+  if (!cat)
+    return showAlert('add-alert','Category cannot be empty.','error');
+  if (isNaN(amt) || amt <= 0)
+    return showAlert('add-alert','Amount must be a positive number.','error');
+  if (!note)
+    return showAlert('add-alert','Note cannot be empty.','error');
+
+  const expenses = loadExpenses();
+  expenses.push({ date: fmtDate(year,month,day), category: cat, amount: amt, note });
+  saveExpenses(expenses);
+
+  /* clear form */
+  ['add-year','add-month','add-day','add-cat','add-amount','add-note']
+    .forEach(id => document.getElementById(id).value = '');
+
+  showAlert('add-alert','Expense added successfully.','success');
+}
+
+/* ════════════════════════════════════════════
+   2. SHOW ALL
+   ════════════════════════════════════════════ */
+function renderAll() {
+  renderTable('all-table', loadExpenses());
+}
+function clearAll() {
+  if (confirm('Delete all expense records?')) {
+    localStorage.removeItem(KEY);
+    renderAll();
+  }
+}
+
+/* ════════════════════════════════════════════
+   3. MONTHLY TOTAL
+   ════════════════════════════════════════════ */
+function calcMonthly() {
+  const year  = parseInt(document.getElementById('m-year').value);
+  const month = parseInt(document.getElementById('m-month').value);
+  const el    = document.getElementById('monthly-result');
+
+  if (!year || year < 2000 || year > 2100 || !month) {
+    el.innerHTML = `<div class="alert show error">Please enter a valid year and month.</div>`;
+    return;
+  }
+
+  const prefix = `${String(year).padStart(4,'0')}-${pad2(month)}`;
+  const total  = loadExpenses()
+    .filter(r => r.date.startsWith(prefix))
+    .reduce((s, r) => s + parseFloat(r.amount), 0);
+
+  const over = total > BUDGET;
+  el.innerHTML = `
+    <div class="total-card">
+      <div class="total-label">Total for ${prefix}</div>
+      <div class="total-value">₹${total.toFixed(2)}</div>
+      ${over ? `<div class="total-warning">⚠ WARNING: Budget exceeded (Budget: ₹${BUDGET.toFixed(2)})</div>` : ''}
+    </div>`;
+}
+
+/* ════════════════════════════════════════════
+   4. CATEGORY TOTAL
+   ════════════════════════════════════════════ */
+function calcCategory() {
+  const cat = document.getElementById('ct-cat').value.trim();
+  const el  = document.getElementById('cat-result');
+
+  if (!cat) {
+    el.innerHTML = `<div class="alert show error">Please enter a category.</div>`;
+    return;
+  }
+
+  const total = loadExpenses()
+    .filter(r => r.category === cat)
+    .reduce((s, r) => s + parseFloat(r.amount), 0);
+
+  el.innerHTML = `
+    <div class="total-card">
+      <div class="total-label">Total for "${cat}"</div>
+      <div class="total-value">₹${total.toFixed(2)}</div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════
+   5. SEARCH BY DATE
+   ════════════════════════════════════════════ */
+function searchDate() {
+  const year  = parseInt(document.getElementById('sd-year').value);
+  const month = parseInt(document.getElementById('sd-month').value);
+  const day   = parseInt(document.getElementById('sd-day').value);
+
+  if (!year || year < 2000 || year > 2100 || !month) {
+    renderTable('sd-table', []);
+    return;
+  }
+  const md = maxDay(year, month);
+  if (!day || day < 1 || day > md) {
+    document.getElementById('sd-table').innerHTML =
+      `<div class="empty-state">Invalid day for this month (max ${md}).</div>`;
+    return;
+  }
+
+  const target = fmtDate(year, month, day);
+  renderTable('sd-table', loadExpenses().filter(r => r.date === target));
+}
+
+/* ════════════════════════════════════════════
+   6. SEARCH BY CATEGORY
+   ════════════════════════════════════════════ */
+function searchCat() {
+  const cat = document.getElementById('sc-cat').value.trim();
+  if (!cat) { renderTable('sc-table', []); return; }
+  renderTable('sc-table', loadExpenses().filter(r => r.category === cat));
+}
+
+/* ════════════════════════════════════════════
+   OVERVIEW
+   ════════════════════════════════════════════ */
+function refreshOverview() {
+  const expenses = loadExpenses();
+  const now   = new Date();
+  const prefix = `${now.getFullYear()}-${pad2(now.getMonth()+1)}`;
+
+  const total    = expenses.reduce((s, r) => s + parseFloat(r.amount), 0);
+  const monthly  = expenses.filter(r => r.date.startsWith(prefix))
+                           .reduce((s, r) => s + parseFloat(r.amount), 0);
+  const pct      = Math.min((monthly / BUDGET) * 100, 100);
+  const over     = monthly > BUDGET;
+
+  document.getElementById('ov-total').textContent  = `₹${total.toFixed(2)}`;
+  document.getElementById('ov-month').textContent  = `₹${monthly.toFixed(2)}`;
+  document.getElementById('ov-count').textContent  = expenses.length;
+  document.getElementById('ov-pct').textContent    = `${pct.toFixed(1)}%`;
+
+  const bar = document.getElementById('ov-bar');
+  bar.style.width = pct + '%';
+  bar.classList.toggle('over', over);
+
+  /* 5 most recent */
+  const recent = [...expenses].reverse().slice(0, 5);
+  renderTable('ov-table', recent);
+}
+
+/* init */
+refreshOverview();
+</script>
+</body>
+</html>
